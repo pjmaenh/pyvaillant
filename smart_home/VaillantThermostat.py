@@ -18,7 +18,10 @@ class VaillantThermostatData:
         self.name = None                    # Module Name        
         self.temp = None                    # Current Temperature
         self.setpoint_temp = None           # Setpoint Temperature
-        self.setpoint_mode = None           # Setpoint Mode (manual, away, hwb, program)
+        #self.setpoint_mode = None          # Setpoint Mode (manual, away, hwb, program)
+        self.setpoint_manual = False        # Manual setpoint
+        self.setpoint_away = False          # Away
+        self.setpoint_hwb = False           # Hot Water Boost
         self.system_mode = None             # System Mode (winter, summer, frostguard)
         self.token = authData.accessToken   # Access Token
         self.update()                       # Get latest data        
@@ -51,13 +54,13 @@ class VaillantThermostatData:
         if 'setpoint_temp' in self.modList[0]['measured']:
             self.setpoint_temp = self.modList[0]['measured']['setpoint_temp']
         
-
-
-        #self.setpoint_manual = self.modList[0]['setpoint_manual']['setpoint_activate']
-        #self.setpoint_away = self.modList[0]['setpoint_away']['setpoint_activate']
-        #self.setpoint_hwb = self.devList[0]['setpoint_hwb']['setpoint_activate']
+        # Get active setpoint mode(s)
+        self.setpoint_manual = self.modList[0]['setpoint_manual']['setpoint_activate']
+        self.setpoint_away = self.modList[0]['setpoint_away']['setpoint_activate']
+        self.setpoint_hwb = self.devList[0]['setpoint_hwb']['setpoint_activate']
 
         # Get setpoint mode
+        '''
         if self.modList[0]['setpoint_manual']['setpoint_activate']:
             self.setpoint_mode = "manual"
         elif self.modList[0]['setpoint_away']['setpoint_activate']:
@@ -66,6 +69,7 @@ class VaillantThermostatData:
             self.setpoint_mode = "hwb"
         else:
             self.setpoint_mode = "program"
+        '''
 
         # Get system mode
         self.system_mode = self.devList[0]['system_mode']
@@ -189,23 +193,40 @@ class VaillantThermostatData:
         """
         if setpointMode not in ["program", "manual", "away", "hwb"]:
             raise NoValidMode("No valid setpoint mode: [{}]".format(setpointMode))
+
+        if setpointMode == "program":
+            #Deactivate old mode(s)
+            if(self.setpoint_away):
+                self.deActivate("away")
+            if(self.setpoint_hwb):
+                self.deActivate("hwb")                
+            if(self.setpoint_manual):
+                self.deActivate("manual")                
+            return
+
         postParams = {"access_token": self.token}
         postParams['device_id'] = deviceId if deviceId else self.devList[0]['_id']
-        postParams['module_id'] = moduleId if moduleId else self.modList[0]['_id']
-        postParams['setpoint_mode'] = setpointMode
-        if setpointMode == "program":
-            if self.setpoint_mode == "program":
-                return # Nothing to do
-            #Deactivate old mode
-            postParams['activate'] = "false"
-            postParams['setpoint_mode'] = self.setpoint_mode
-        else:
-            postParams['activate'] = "true"
+        postParams['module_id'] = moduleId if moduleId else self.modList[0]['_id']            
+        postParams['setpoint_mode'] = setpointMode            
+        postParams['activate'] = "true"
         if setpointMode == "manual":
             postParams['setpoint_endtime'] = int(time.time() + endTimeOffset)
             postParams['setpoint_temp'] = setpointTemperature
         if setpointMode == "hwb":
             postParams['setpoint_endtime'] = int(time.time() + endTimeOffset)
+        return postRequest(_SETTEMP_REQ, postParams)
+
+    def deActivate(self, setpointMode, deviceId = None, moduleId = None):
+        '''
+        Deactivate a setpoint mode
+        '''
+        if setpointMode not in ["manual", "away", "hwb"]:
+            raise NoValidMode("No valid setpoint mode: [{}]".format(setpointMode))        
+        postParams = {"access_token": self.token}
+        postParams['device_id'] = deviceId if deviceId else self.devList[0]['_id']
+        postParams['module_id'] = moduleId if moduleId else self.modList[0]['_id']
+        postParams['activate'] = "false"
+        postParams['setpoint_mode'] = setpointMode
         return postRequest(_SETTEMP_REQ, postParams)
 
     def setSystemMode(self, systemMode, deviceId = None, moduleId = None):
@@ -221,3 +242,15 @@ class VaillantThermostatData:
         postParams['system_mode'] = systemMode
 
         return postRequest(_SETSYSTEMMODE_REQ, postParams)
+
+    def printStatus(self):
+        print("Thermostat:      \t {}".format(self.name))
+        print("Current temp:    \t {}".format(self.temp))
+        print("Target temp:     \t {}".format(self.setpoint_temp))
+        print("System mode:     \t {}".format(self.system_mode))
+        print("Manual setpoint? \t {}".format(self.setpoint_manual))            
+        print("Away?            \t {}".format(self.setpoint_away))
+        print("Hot Water Boost? \t {}".format(self.setpoint_hwb))
+        #print(thermostat.data.setpoint_mode)
+        print("")
+
