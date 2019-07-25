@@ -21,7 +21,6 @@ _AUTH_REQ = _BASE_URL + "oauth2/token"
 _WEBHOOK_URL_ADD = _BASE_URL + "api/addwebhook"
 _WEBHOOK_URL_DROP = _BASE_URL + "api/dropwebhook"
 
-
 class ClientAuth:
     """
     Request authentication and keep access token available through token method. Renew it automatically if necessary
@@ -71,6 +70,7 @@ class ClientAuth:
         self._scope = resp["scope"]
         self.expiration = int(resp["expire_in"] + time.time() - 1800)
 
+    '''
     def addwebhook(self, webhook_url):
         postParams = {
             "access_token": self._accessToken,
@@ -84,6 +84,7 @@ class ClientAuth:
         postParams = {"access_token": self._accessToken, "app_types": "app_security"}
         resp = postRequest(_WEBHOOK_URL_DROP, postParams)
         LOG.debug("dropwebhook: %s", resp)
+    '''
 
     @property
     def accessToken(self):
