@@ -6,7 +6,7 @@ import setuptools
 
 setup(
     name='pyvaillant',
-    version="0.0.2",  
+    version="0.0.3",  
     author="Pieter-Jan Maenhaut, based on netatmo-vaillant by Samuel Dumont and netatmo by Hugo Dupras",
     author_email="noreply@pjm.be",
     py_modules=["pyvaillant"],
